@@ -28,6 +28,9 @@ jobs:
            pandoc "$file" -o "output/${file%.md}.html" --template=template.html
         done
 
+    # assets をコピー
+    cp -r assets output/
+
     # サーバーにデプロイ
     - name: Deploy to server
       env:
