@@ -1,0 +1,42 @@
+name: Deploy Markdown as HTML
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # リポジトリをクローン
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # pandoc をインストール
+    - name: Install Pandoc
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y pandoc
+
+    # Markdown を HTML に変換
+    - name: Convert Markdown to HTML
+      run: |
+        mkdir -p output
+        for file in *.md; do
+           pandoc "$file" -o "output/${file%.md}.html" --template=template.html
+        done
+
+    # サーバーにデプロイ
+    - name: Deploy to server
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      run: |
+        mkdir -p ~/.ssh
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        # SSH 設定ファイルの作成
+        echo -e "Host *\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
+        chmod 600 ~/.ssh/config
+        rsync -avz -e "ssh -p 10022" --delete output/ hiroshi@vps1.toycode.com:/var/www/html/info
